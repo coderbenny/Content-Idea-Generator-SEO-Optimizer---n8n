@@ -1,0 +1,1429 @@
+{
+  "name": "Content Idea Generator + SEO Optimizer",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "daysInterval": 7,
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -140,
+        160
+      ],
+      "id": "591462f2-8baf-4f5a-b551-e4357750c356",
+      "name": "Schedule Trigger",
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        -40
+      ],
+      "id": "2cbaf6b9-5068-4c1e-abad-fc96f0c06e25",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google_trends"
+            },
+            {
+              "name": "q",
+              "value": "={{$json.config.niche}}"
+            },
+            {
+              "name": "api_key",
+              "value": "enter your api key"
+            },
+            {
+              "name": "data_type",
+              "value": "RELATED_QUERIES"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        -160
+      ],
+      "id": "8187348c-a9d9-42bb-b202-b1b9f1b66c36",
+      "name": "Serp API Search",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Define niche and parameters\nconst config = {\n  niche: $input.first().json.Niche, // Change to your niche\n  targetAudience: $input.first().json['Target Audience'],\n  numberOfIdeas: 10,\n  competitorUrls: [\n    \"https://www.format.com/magazine\",\n    \"https://photographylife.com/articles\",\n    \"https://digital-photography-school.com/articles/\"\n  ],\n  excludeKeywords: [\"free\", \"cheap\", \"beginner\"], // Keywords to avoid\n  minSearchVolume: 500,\n  maxKeywordDifficulty: 60,\n  contentTypes: [\"blog post\", \"video script\", \"social media carousel\", \"email newsletter\"]\n};\n\nreturn [{\n  json: {\n    config: config,\n    runDate: new Date().toISOString(),\n    runId: `run_${Date.now()}`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        60
+      ],
+      "id": "f4c87a0b-7189-4dfa-a777-af92a8fae3b5",
+      "name": "Niche & Parameters",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google_trends"
+            },
+            {
+              "name": "q",
+              "value": "={{$json.config.niche}}"
+            },
+            {
+              "name": "api_key",
+              "value": "your api key"
+            },
+            {
+              "name": "num",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        0
+      ],
+      "id": "a7e7f2e3-403c-4b85-b3f4-7ffdd2942ede",
+      "name": "Search Volume",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 1600,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://oauth.reddit.com/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "redditOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{$json.config.niche}}"
+            },
+            {
+              "name": "sort",
+              "value": "top"
+            },
+            {
+              "name": "t",
+              "value": "week"
+            },
+            {
+              "name": "limit",
+              "value": "50"
+            },
+            {
+              "name": "type",
+              "value": "link, comment"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-workflow-bot/1.0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        200
+      ],
+      "id": "e2e589ab-d1c3-450e-8fc5-decc7bf99a02",
+      "name": "Reddit API REQ",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "redditOAuth2Api": {
+          "id": "NVVz29lvvh1EL9Qi",
+          "name": "Reddit account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate all data from previous nodes\nconst items = $input.all();\n\n// Process SerpAPI results\nconst serpResults = items.filter(item => item.json.organic_results);\nconst keywords = [];\n\nserpResults.forEach(result => {\n  if (result.json.organic_results) {\n    result.json.organic_results.forEach(res => {\n      keywords.push({\n        keyword: res.title,\n        url: res.link,\n        snippet: res.snippet\n      });\n    });\n  }\n});\n\n// Process Reddit data\nconst redditPosts = items.filter(item => item.json.data && item.json.data.children);\nconst redditTopics = [];\n\nredditPosts.forEach(post => {\n  if (post.json.data.children) {\n    post.json.data.children.forEach(child => {\n      const data = child.data;\n      redditTopics.push({\n        title: data.title,\n        score: data.score,\n        numComments: data.num_comments,\n        url: data.url,\n        subreddit: data.subreddit,\n        created: new Date(data.created_utc * 1000)\n      });\n    });\n  }\n});\n\n// Process competitor content\nconst competitorContent = items.filter(item => item.json.scrapedContent);\nconst contentAnalysis = competitorContent.map(item => {\n  return {\n    url: item.json.url,\n    title: item.json.title,\n    headings: item.json.headings,\n    wordCount: item.json.wordCount,\n  };\n});\n\n// Calculate trending scores\nconst trendingTopics = redditTopics\n  .sort((a, b) => (b.score + b.numComments * 2) - (a.score + a.numComments * 2))\n  .slice(0, 20)\n  .map(topic => ({\n    topic: topic.title,\n    engagement: topic.score + topic.numComments * 2,\n    subreddit: topic.subreddit\n  }));\n\n// Find config\nconst config = items.find(item => item.json.config)?.json.config || null;\n\nreturn [{\n  json: {\n    keywords: keywords.slice(0, 50),\n    keywordCount: keywords.length,\n    config: config,\n    trendingTopics: trendingTopics,\n    competitorContent: contentAnalysis,\n    analyzedAt: new Date().toISOString(),\n    needsKeywordResearch: keywords.length === 0\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        60
+      ],
+      "id": "c71f2a7c-040d-476a-ac42-072df9079a96",
+      "name": "AI Prompt",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert SEO content strategist and trend analyst specializing in {{$json.config.niche}}. Your target audience is {{$json.config.targetAudience}}.\n\n=== INITIAL DATA ASSESSMENT ===\nKeywords Available: {{$json.keywordCount}}\nNiche: {{$json.config.niche}}\nTarget Audience: {{$json.config.targetAudience}}\nIdeas Required: {{$json.config.numberOfIdeas}}\nAnalyzed At: {{$json.analyzedAt}}\n\nAvailable Keywords: {{JSON.stringify($json.keywords)}}\nTrending Topics: {{JSON.stringify($json.trendingTopics)}}\nCompetitor Content: {{JSON.stringify($json.competitorContent)}}\n\n=== YOUR PRIMARY TASK ===\n\nSTEP 1: KEYWORD VALIDATION & RESEARCH\nFirst, check if sufficient keywords are available. If {{$json.keywordCount}} is 0 or less than 10, you MUST perform fresh keyword research using your search tools.\n\nTo perform keyword research, search Google for these queries:\n1. \"{{$json.config.niche}} content ideas\"\n2. \"{{$json.config.niche}} trending topics {{ new Date().getFullYear() }}\"\n3. \"{{$json.config.niche}} {{$json.config.targetAudience}}\"\n4. \"best {{$json.config.niche}} articles\"\n5. \"{{$json.config.niche}} questions\"\n6. \"{{$json.config.niche}} how to\"\n\nFrom the search results, extract:\n- Article titles and headings (these are proven keywords)\n- \"People Also Ask\" questions\n- Related searches suggestions\n- High-ranking content topics\n- Long-tail keyword phrases (3-5 words)\n- Question-based keywords (how, what, why, when, where, who)\n\nFor each keyword you find, estimate:\n- Search Volume: Estimate as High (>10000), Medium (1000-10000), or Low (<1000) based on search result competition\n- Keyword Difficulty: Score 0-100 where 0-30 is Low, 31-60 is Medium, 61-100 is High\n- Trend Status: Assess if rising, stable, or declining based on date of top results\n\nCompile at least 30-50 keywords before proceeding to analysis.\n\nSTEP 2: COMPREHENSIVE ANALYSIS\n\n2.1 KEYWORD ANALYSIS CRITERIA\n- Prioritize keywords with search volume > {{$json.config.minSearchVolume}}\n- Prefer keyword difficulty < {{$json.config.maxKeywordDifficulty}}\n- Focus on long-tail opportunities (3-5 words) - these rank easier\n- Prioritize question-based keywords (how, what, why, when) - high intent\n- Look for commercial intent keywords (best, top, review, vs, comparison)\n- Identify informational keywords (guide, tutorial, tips, learn)\n\n2.2 COMPETITOR GAP ANALYSIS\nReview competitor content provided above:\n- What topics have they covered?\n- What angles did they miss or cover superficially?\n- Are there outdated pieces you can update with fresh data?\n- What questions remain unanswered in their content?\n- Where can you provide more comprehensive coverage?\n- What's missing from their content structure?\n\n2.3 TREND ANALYSIS\nReview Reddit trending topics provided above:\n- Which topics have engagement scores > 100?\n- What themes appear across multiple trending posts?\n- Are there emerging patterns or new angles?\n- What controversial or debated topics show high engagement?\n- What questions are people actively discussing?\n- What pain points are frequently mentioned?\n\n2.4 CONTENT OPPORTUNITY SCORING\nScore each potential idea from 0-100 using this formula:\n- Search Volume Potential: 30 points (higher volume = more points)\n- Competition Level: 20 points (lower difficulty = more points)\n- Trend Momentum: 25 points (higher engagement = more points)\n- Audience Alignment: 25 points (closer to target audience = more points)\n\nSTEP 3: GENERATE CONTENT IDEAS\n\nYou must generate EXACTLY {{$json.config.numberOfIdeas}} content ideas following this PRECISE format. This format is CRITICAL - the parsing system depends on exact formatting.\n\n⚠️ FORMATTING RULES - FOLLOW EXACTLY:\n- Each idea starts with: **IDEA #[number]: [Title]**\n- Every field must be on its own line\n- Numbers must be digits only (no text, no commas)\n- Competition Level must be exactly one of: Low, Medium, High\n- Content Type must be EXACTLY one of: Blog Post, Text, Video, Carousel\n- Separate each idea with three dashes: ---\n- Do not add extra asterisks or formatting\n\nFORMAT TEMPLATE (COPY THIS EXACTLY):\n\n**IDEA #1: [Compelling, SEO-Optimized Title That Includes Target Keyword]**\n**Target Keyword:** [main keyword phrase - 2-5 words]\n**Secondary Keywords:** keyword1, keyword2, keyword3, keyword4, keyword5\n**Search Volume:** [number only e.g. 8500]\n**Keyword Difficulty:** [number 0-100 e.g. 42]\n**Trending Score:** [number 0-100 e.g. 78]\n**Competition Level:** [Low/Medium/High]\n**Content Type:** [Blog Post/Text]\n**Estimated Word Count:** [number e.g. 2800]\n**Target Audience Segment:** [specific sub-segment of {{$json.config.targetAudience}}]\n\n**Why This Will Work:**\n[Write 2-3 sentences explaining: 1) The search opportunity and intent, 2) Why it will rank (low competition, high demand), 3) How it serves the audience need. Be specific and data-driven.]\n\n**Detailed Outline:**\n1. Introduction - [2-3 sentences: What hook will you use? What problem does this solve? What will readers learn?]\n2. [Section Title] - [2-3 sentences: What key points will you cover? What subtopics? What examples?]\n3. [Section Title] - [2-3 sentences: What key points will you cover? What subtopics? What examples?]\n4. [Section Title] - [2-3 sentences: What key points will you cover? What subtopics? What examples?]\n5. [Section Title] - [2-3 sentences: What key points will you cover? What subtopics? What examples?]\n6. Conclusion - [2-3 sentences: How will you wrap up? What's the call-to-action? What are next steps?]\n\n**SEO Optimization Tips:**\n- H1 tag should be: [exact title] with target keyword in first 60 characters\n- Include target keyword in first 100 words, H2 tags, and naturally 3-5 times throughout\n- Internal linking: Link to [specific related topics] using anchor text: [examples]\n- Meta description (150 chars): [Write the exact meta description to use]\n- Featured snippet opportunity: [Explain what question to answer in what format to capture snippet]\n\n**Visual Content Suggestions:**\n- [Specific custom graphic idea with details on what to show]\n- [Chart or data visualization concept with specific data points]\n- [Screenshot or step-by-step visual guide description]\n- [Video or GIF concept if applicable]\n- [Stock photo search terms or alternatively describe custom image needs]\n\n**Content Gap Exploited:**\n[Be specific: What exact gap in competitor content does this fill? What new angle, depth, or perspective are you providing that doesn't exist elsewhere?]\n\n**Engagement Hooks:**\n- Opening hook: [Write the specific first sentence or opening paragraph approach]\n- Social media teaser: [Write the exact social media post copy - keep it punchy]\n- Email subject line: [Write exact subject line under 50 characters that will get opens]\n\n**Related Content Ideas:**\n1. [Follow-up topic title that builds on this content]\n2. [Complementary topic title that targets related keyword]\n3. [Advanced or beginner version topic title]\n\n---\n\n**IDEA #2: [Next Title]**\n[Continue with exact same format...]\n\n---\n\n[Repeat for all {{$json.config.numberOfIdeas}} ideas]\n\n=== CONTENT TYPE SELECTION GUIDE ===\n\nChoose \"Blog Post\" when:\n- Content is comprehensive (1500+ words)\n- Includes multiple sections and headings\n- Requires detailed explanations or tutorials\n- Best suited for SEO ranking\n- Examples: How-to guides, ultimate guides, listicles, tutorials, comparisons\n\nChoose \"Text\" when:\n- Content is shorter and more concise (under 1500 words)\n- Quick tips, definitions, or brief explanations\n- Simple Q&A format\n- Short-form educational content\n- Examples: Quick tips, FAQs, definitions, short explanations\n\nDEFAULT: When in doubt, use \"Blog Post\" as it's the most versatile format.\n\n=== CRITICAL REQUIREMENTS - DO NOT DEVIATE ===\n\n✓ Generate EXACTLY {{$json.config.numberOfIdeas}} ideas - no more, no less\n✓ Use the EXACT field names shown above - parsing depends on them\n✓ Every single field must be present for every idea - no skipping\n✓ Numbers must be numeric only: \"5000\" not \"5,000\" or \"5k\" or \"around 5000\"\n✓ Competition Level MUST be exactly: Low, Medium, or High (nothing else)\n✓ Content Type MUST be exactly: Blog Post or Text (nothing else - no variations)\n✓ Each idea MUST end with three dashes: ---\n✓ EXCLUDE any keywords containing these terms: {{$json.config.excludeKeywords}}\n✓ All ideas must be unique - no duplicates or near-duplicates\n✓ Titles must be compelling and include the target keyword naturally\n✓ Focus on actionable, practical content over theoretical\n✓ Prioritize content that can realistically rank within 3-6 months\n✓ Consider content that can be repurposed (blog → video → social posts)\n✓ Include current trends and timely topics from the trending data\n✓ Ensure all search volumes and difficulties are realistic estimates\n✓ Make every outline detailed enough that a writer could start immediately\n\n=== OUTPUT STRUCTURE ===\n\nBegin your response with:\n\"I have analyzed [X] keywords, [Y] trending topics, and [Z] competitor content pieces for {{$json.config.niche}}. Here are the top {{$json.config.numberOfIdeas}} content opportunities ranked by potential impact:\"\n\n[If you had to perform keyword research because keywordCount was low, add:]\n\"I performed fresh keyword research and identified [number] high-potential keywords for this niche.\"\n\nThen provide all ideas in the exact format specified above.\n\n=== BEGIN CONTENT IDEA GENERATION NOW ===",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        60
+      ],
+      "id": "32c13be8-eb70-44b4-939e-9665f9f1864d",
+      "name": "AI Agent",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        280
+      ],
+      "id": "873dfccb-95ce-46c7-b0b9-cf271601039e",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "2LD3DXdzY64mzuPF",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "cnt101"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1640,
+        280
+      ],
+      "id": "220a3bde-f0bd-4a16-a8da-6566180793e5",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the agent's response and structure it\nconst input = $input.first().json;\nconst agentOutput = input.output || input.text || '';\n\n// Validation\nif (!agentOutput || agentOutput.trim() === '') {\n  throw new Error('Agent returned empty output. Please check agent configuration and API limits.');\n}\n\n// Log for debugging\nconsole.log('Agent output length:', agentOutput.length);\nconsole.log('First 200 chars:', agentOutput.substring(0, 200));\n\n// Extract individual ideas\nconst ideas = [];\nconst ideaBlocks = agentOutput.split(/\\*\\*IDEA #/i);\n\nconsole.log('Idea blocks found:', ideaBlocks.length - 1);\n\n// Skip first element (content before first IDEA)\nideaBlocks.slice(1).forEach((block, index) => {\n  try {\n    // More robust regex patterns\n    const titleMatch = block.match(/^(\\d+):\\s*(.+?)(?:\\n|\\*\\*)/);\n    const keywordMatch = block.match(/\\*\\*Target Keyword:\\*\\*\\s*(.+?)(?:\\n|$)/i);\n    const secondaryMatch = block.match(/\\*\\*Secondary Keywords:\\*\\*\\s*(.+?)(?:\\n|$)/i);\n    const volumeMatch = block.match(/\\*\\*Search Volume:\\*\\*\\s*(\\d+)/i);\n    const difficultyMatch = block.match(/\\*\\*Keyword Difficulty:\\*\\*\\s*(\\d+)/i);\n    const scoreMatch = block.match(/\\*\\*Trending Score:\\*\\*\\s*(\\d+)/i);\n    const competitionMatch = block.match(/\\*\\*Competition Level:\\*\\*\\s*(Low|Medium|High)/i);\n    const contentTypeMatch = block.match(/\\*\\*Content Type:\\*\\*\\s*(.+?)(?:\\n|$)/i);\n    const wordCountMatch = block.match(/\\*\\*Estimated Word Count:\\*\\*\\s*(\\d+)/i);\n    const audienceMatch = block.match(/\\*\\*Target Audience Segment:\\*\\*\\s*(.+?)(?:\\n|$)/i);\n    \n    // Extract sections\n    const whyMatch = block.match(/\\*\\*Why This Will Work:\\*\\*\\s*([\\s\\S]+?)\\*\\*Detailed Outline:/i);\n    const outlineMatch = block.match(/\\*\\*Detailed Outline:\\*\\*\\s*([\\s\\S]+?)\\*\\*SEO Optimization/i);\n    const seoMatch = block.match(/\\*\\*SEO Optimization Tips:\\*\\*\\s*([\\s\\S]+?)\\*\\*Visual Content/i);\n    const visualMatch = block.match(/\\*\\*Visual Content Suggestions:\\*\\*\\s*([\\s\\S]+?)\\*\\*Content Gap/i);\n    const gapMatch = block.match(/\\*\\*Content Gap Exploited:\\*\\*\\s*([\\s\\S]+?)\\*\\*Engagement Hooks:/i);\n    const hooksMatch = block.match(/\\*\\*Engagement Hooks:\\*\\*\\s*([\\s\\S]+?)\\*\\*Related Content/i);\n    const relatedMatch = block.match(/\\*\\*Related Content Ideas:\\*\\*\\s*([\\s\\S]+?)(?:---|$)/i);\n    \n    const idea = {\n      ideaNumber: index + 1,\n      title: titleMatch ? titleMatch[2].trim() : `Untitled Idea ${index + 1}`,\n      keyword: keywordMatch ? keywordMatch[1].trim() : '',\n      secondaryKeywords: secondaryMatch ? secondaryMatch[1].trim().split(',').map(k => k.trim()) : [],\n      searchVolume: volumeMatch ? parseInt(volumeMatch[1]) : 0,\n      difficulty: difficultyMatch ? parseInt(difficultyMatch[1]) : 0,\n      trendingScore: scoreMatch ? parseInt(scoreMatch[1]) : 0,\n      competition: competitionMatch ? competitionMatch[1].trim() : 'Medium',\n      contentType: contentTypeMatch ? contentTypeMatch[1].trim() : 'Blog Post',\n      wordCount: wordCountMatch ? parseInt(wordCountMatch[1]) : 0,\n      audienceSegment: audienceMatch ? audienceMatch[1].trim() : '',\n      whyItWorks: whyMatch ? whyMatch[1].trim() : '',\n      outline: outlineMatch ? outlineMatch[1].trim() : '',\n      seoTips: seoMatch ? seoMatch[1].trim() : '',\n      visualSuggestions: visualMatch ? visualMatch[1].trim() : '',\n      contentGap: gapMatch ? gapMatch[1].trim() : '',\n      engagementHooks: hooksMatch ? hooksMatch[1].trim() : '',\n      relatedIdeas: relatedMatch ? relatedMatch[1].trim() : '',\n      fullContent: block.trim(),\n      createdAt: new Date().toISOString(),\n      qualityScore: 0\n    };\n    \n    // Calculate quality score (0-100)\n    let qualityScore = 0;\n    if (idea.keyword) qualityScore += 15;\n    if (idea.searchVolume > 0) qualityScore += 15;\n    if (idea.outline) qualityScore += 20;\n    if (idea.seoTips) qualityScore += 15;\n    if (idea.visualSuggestions) qualityScore += 10;\n    if (idea.contentGap) qualityScore += 10;\n    if (idea.engagementHooks) qualityScore += 10;\n    if (idea.trendingScore > 50) qualityScore += 5;\n    \n    idea.qualityScore = qualityScore;\n    \n    ideas.push(idea);\n    \n  } catch (error) {\n    console.error(`Error parsing idea #${index + 1}:`, error.message);\n    // Push a partial idea so we don't lose data\n    ideas.push({\n      ideaNumber: index + 1,\n      title: `Parsing Error - Idea ${index + 1}`,\n      error: error.message,\n      rawContent: block.substring(0, 500),\n      createdAt: new Date().toISOString()\n    });\n  }\n});\n\n// Validation\nif (ideas.length === 0) {\n  throw new Error('No ideas were successfully parsed. Check agent output format.');\n}\n\nconsole.log(`Successfully parsed ${ideas.length} ideas`);\n\n// Sort by combined score (trending score + quality score)\nideas.sort((a, b) => {\n  const scoreA = (a.trendingScore || 0) + (a.qualityScore || 0);\n  const scoreB = (b.trendingScore || 0) + (b.qualityScore || 0);\n  return scoreB - scoreA;\n});\n\n// Return as separate items for easier downstream processing\nreturn ideas.map(idea => ({ json: idea }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1940,
+        60
+      ],
+      "id": "bc0ec0cd-c139-40e5-99d3-45ab34a5a649",
+      "name": "Post-Processing & Scoring",
+      "alwaysOutputData": true,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "app666rrIm8om9ecs",
+          "mode": "list",
+          "cachedResultName": "Content Pipeline",
+          "cachedResultUrl": "https://airtable.com/app666rrIm8om9ecs"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblwhM74z8Qxwyw0h",
+          "mode": "list",
+          "cachedResultName": "Content Ideas",
+          "cachedResultUrl": "https://airtable.com/app666rrIm8om9ecs/tblwhM74z8Qxwyw0h"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Idea Title": "={{$json.title}}",
+            "Keyword": "={{$json.keyword}}",
+            "Search Volume": "={{$json.searchVolume}}",
+            "Keyword Difficulty": "={{$json.difficulty}}",
+            "Content Type": "={{ $json.contentType }}",
+            "Competition Level": "={{$json.competition}}",
+            "Outline": "={{$json.outline}}",
+            "SEO Tips": "={{$json.seoTips}}",
+            "Suggested Images": "={{$json.visualSuggestions}}",
+            "Trending Score": "={{$json.trendingScore}}",
+            "Status": "New",
+            "Source URLs ": "=",
+            "Reddit Mentions": "=",
+            "Publish Target Date": "={{ $json.publishTargetDate }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Idea Title",
+              "displayName": "Idea Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Niche/Category",
+              "displayName": "Niche/Category",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Photography",
+                  "value": "Photography"
+                },
+                {
+                  "name": "Content Creation",
+                  "value": "Content Creation"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Keyword",
+              "displayName": "Keyword",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Search Volume",
+              "displayName": "Search Volume",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Keyword Difficulty",
+              "displayName": "Keyword Difficulty",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Competition Level",
+              "displayName": "Competition Level",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Low",
+                  "value": "Low"
+                },
+                {
+                  "name": "Medium",
+                  "value": "Medium"
+                },
+                {
+                  "name": "High",
+                  "value": "High"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Content Type",
+              "displayName": "Content Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Blog Post",
+                  "value": "Blog Post"
+                },
+                {
+                  "name": "Video",
+                  "value": "Video"
+                },
+                {
+                  "name": "Carousel",
+                  "value": "Carousel"
+                },
+                {
+                  "name": "Text",
+                  "value": "Text"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Outline",
+              "displayName": "Outline",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "SEO Tips",
+              "displayName": "SEO Tips",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Suggested Images",
+              "displayName": "Suggested Images",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Trending Score",
+              "displayName": "Trending Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Source URLs ",
+              "displayName": "Source URLs ",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reddit Mentions",
+              "displayName": "Reddit Mentions",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "New",
+                  "value": "New"
+                },
+                {
+                  "name": "In Progress",
+                  "value": "In Progress"
+                },
+                {
+                  "name": "Published",
+                  "value": "Published"
+                },
+                {
+                  "name": "Archived",
+                  "value": "Archived"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Assigned To",
+              "displayName": "Assigned To",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Created Date",
+              "displayName": "Created Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Publish Target Date",
+              "displayName": "Publish Target Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2660,
+        180
+      ],
+      "id": "1a8c17e7-410f-413d-a249-c7a75bd314cc",
+      "name": "Create Content Idea",
+      "retryOnFail": false,
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "W5kfBXr1rtjx6Uti",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "app666rrIm8om9ecs",
+          "mode": "list",
+          "cachedResultName": "Content Pipeline",
+          "cachedResultUrl": "https://airtable.com/app666rrIm8om9ecs"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblqcIDR4Yl3GMzsR",
+          "mode": "list",
+          "cachedResultName": "Keywords Database",
+          "cachedResultUrl": "https://airtable.com/app666rrIm8om9ecs/tblqcIDR4Yl3GMzsR"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Keyword": "={{$json.keyword}}",
+            "Search Volume": "={{$json.searchVolume}}",
+            "Difficulty": "={{$json.difficulty}}",
+            "CPC": 0
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Keyword",
+              "displayName": "Keyword",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Search Volume",
+              "displayName": "Search Volume",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Difficulty",
+              "displayName": "Difficulty",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "CPC",
+              "displayName": "CPC",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Trend Direction",
+              "displayName": "Trend Direction",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Rising",
+                  "value": "Rising"
+                },
+                {
+                  "name": "Stable",
+                  "value": "Stable"
+                },
+                {
+                  "name": "Declining",
+                  "value": "Declining"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Related Keywords ",
+              "displayName": "Related Keywords ",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Last Updated",
+              "displayName": "Last Updated",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2660,
+        -40
+      ],
+      "id": "0637dac7-8a52-42e9-8dbe-1ca8306e8013",
+      "name": "Save Keywords To DB",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "W5kfBXr1rtjx6Uti",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2920,
+        60
+      ],
+      "id": "5d0d774a-ed8b-45e6-bc7d-b7983b723634",
+      "name": "Merge1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "formTitle": "Content Idea Generator + SEO Optimizer",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Niche",
+              "placeholder": "Enter your niche",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Target Audience",
+              "placeholder": "Enter your target audience",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -140,
+        -220
+      ],
+      "id": "568da1ac-123c-42a1-80d6-7d7483dbdcef",
+      "name": "On form submission",
+      "webhookId": "777bc09e-c65c-4a62-85ba-34d066ac7b1f"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Please wait...",
+        "completionMessage": "Thanks for filling in the required details. Please wait as the AI Works its magic",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        60,
+        -220
+      ],
+      "id": "0d5842dc-0e6a-4902-8a46-3efc6c45dbf1",
+      "name": "Form",
+      "webhookId": "83fcebc6-2c2c-4b6f-a1de-fa208800e9e6",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        260,
+        40
+      ],
+      "id": "9259fd69-14d9-42bd-a841-67dc6f564f14",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"Niche\": \"video editing\",\n  \"Target Audience\": \"Video editors and social media content creators\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        60,
+        -40
+      ],
+      "id": "eff31286-c072-432e-b3cc-d75552376e1e",
+      "name": "Video Editing",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"Niche\": \"content creation\",\n  \"Target Audience\": \"vloggers, youtubers, tiktoker and content creators\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        60,
+        160
+      ],
+      "id": "98ad3482-5d8d-4df1-9619-13405dbcd286",
+      "name": "Content Creation",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "numberInputs": 7
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1120,
+        -20
+      ],
+      "id": "9d316556-75e8-4080-a24f-b3fb7977f9e4",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "path": "0c49b066-13f5-4411-9750-3291c91a3019",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        340
+      ],
+      "id": "2b99e162-ed1f-48f5-bc0d-9d3cd71dcb5a",
+      "name": "Webhook",
+      "webhookId": "0c49b066-13f5-4411-9750-3291c91a3019"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"Niche\": \"content creation\",\n  \"Target Audience\": \"vloggers, youtubers, tiktoker and content creators\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        60,
+        340
+      ],
+      "id": "0d62fcf6-303e-4dbf-9f09-554f36f0bd41",
+      "name": "Content Creation1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "toolDescription": "Makes an HTTP request to serpAPI to search for keywords and related data, and returns the response data",
+        "url": "https://serpapi.com/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google"
+            },
+            {
+              "name": "q",
+              "value": "={{$json.niche}} keywords"
+            },
+            {
+              "name": "api_key",
+              "value": "your api key"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        1940,
+        280
+      ],
+      "id": "21bb13cd-2ce9-4cb3-87d7-c24665c68854",
+      "name": "Google Search",
+      "alwaysOutputData": true,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://oauth.reddit.com/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "redditOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{$json.config.niche}}"
+            },
+            {
+              "name": "sort",
+              "value": "top"
+            },
+            {
+              "name": "t",
+              "value": "week"
+            },
+            {
+              "name": "limit",
+              "value": "50"
+            },
+            {
+              "name": "type",
+              "value": "keyword, link, comment"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        280
+      ],
+      "id": "799eda13-1c9d-4226-91fd-26d595d85cc3",
+      "name": "Reddit Keyword Search",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "redditOAuth2Api": {
+          "id": "NVVz29lvvh1EL9Qi",
+          "name": "Reddit account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=your google api key",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents",
+              "value": "={{$json.contents}}"
+            },
+            {
+              "name": "generationConfig",
+              "value": "={{$json.generationConfig}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2220,
+        60
+      ],
+      "id": "ea3c64e1-1344-438f-a3fe-41356b2f960d",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get original items from Post-Processing Node\nconst originalItems = $('Post-Processing & Scoring').all();\n\n// Get Gemini response\nconst geminiResponse = $input.first().json;\n\n// Parse AI categorization results\nlet aiResults = [];\ntry {\n  const responseText = geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text;\n  \n  if (!responseText) {\n    throw new Error('No text content in Gemini response');\n  }\n  \n  const cleanedText = responseText.replace(/```json\\n?|\\n?```/g, '').trim();\n  aiResults = JSON.parse(cleanedText);\n  \n  if (!Array.isArray(aiResults)) {\n    throw new Error('Gemini response is not an array');\n  }\n  \n  console.log(`Gemini categorized ${aiResults.length} items`);\n} catch (error) {\n  console.error('Failed to parse Gemini response:', error.message);\n  throw new Error(`Gemini response parsing failed: ${error.message}`);\n}\n\n// Create a map for O(1) lookup\nconst categoryMap = new Map(\n  aiResults.map(result => [result.id, result])\n);\n\n// Constants\nconst VALID_TYPES = ['Blog Post', 'Text', 'Video', 'Carousel'];\nconst VALID_COMPETITION = ['Low', 'Medium', 'High'];\nconst MAX_FIELD_LENGTH = 99000;\n\nconst TYPE_NORMALIZER = {\n  'blogpost': 'Blog Post',\n  'blog post': 'Blog Post',\n  'blog': 'Blog Post',\n  'text': 'Text',\n  'article': 'Text',\n  'video': 'Video',\n  'carousel': 'Carousel',\n  'slides': 'Carousel'\n};\n\n// Helper functions\nfunction normalizeContentType(type, wordCount) {\n  if (!type) return wordCount >= 1500 ? 'Blog Post' : 'Text';\n  const normalized = TYPE_NORMALIZER[type.toLowerCase()] || type;\n  return VALID_TYPES.includes(normalized) ? normalized : 'Blog Post';\n}\n\nfunction truncateField(text, maxLength = MAX_FIELD_LENGTH) {\n  if (!text || text.length <= maxLength) return text;\n  return text.substring(0, maxLength - 15) + '...[truncated]';\n}\n\nfunction safeInt(value, defaultValue = 0) {\n  const parsed = parseInt(value);\n  return isNaN(parsed) ? defaultValue : parsed;\n}\n\nfunction formatDateForAirtable(date) {\n  if (!date) return null;\n  \n  try {\n    const d = new Date(date);\n    if (isNaN(d.getTime())) return null;\n    \n    // Return YYYY-MM-DD format (Airtable's preferred date format)\n    return d.toISOString().split('T')[0];\n  } catch (error) {\n    console.error('Date formatting error:', error);\n    return null;\n  }\n}\n\n// Process and merge items\nconst processedItems = originalItems.map(item => {\n  const idea = { ...item.json };\n  const aiCategory = categoryMap.get(idea.ideaNumber);\n  \n  // Parse numeric fields\n  const wordCount = safeInt(idea.wordCount, 2000);\n  idea.searchVolume = safeInt(idea.searchVolume);\n  idea.difficulty = safeInt(idea.difficulty);\n  idea.trendingScore = safeInt(idea.trendingScore);\n  idea.wordCount = wordCount;\n  idea.qualityScore = safeInt(idea.qualityScore);\n  \n  // Apply AI categorization or fallback\n  if (aiCategory) {\n    const contentType = normalizeContentType(aiCategory.contentType, wordCount);\n    \n    idea.contentType = contentType;\n    idea.contentTypeConfidence = safeInt(aiCategory.confidence, 80);\n    idea.contentTypeReasoning = aiCategory.reasoning || 'Categorized by Gemini AI';\n    idea.aiCategorized = true;\n    idea.aiModel = 'gemini-2.0-flash-exp';\n  } else {\n    console.warn(`No AI categorization for idea ${idea.ideaNumber}, using fallback`);\n    \n    idea.contentType = wordCount >= 1500 ? 'Blog Post' : 'Text';\n    idea.contentTypeConfidence = 60;\n    idea.contentTypeReasoning = 'Fallback: Word count based categorization';\n    idea.aiCategorized = false;\n  }\n  \n  // Validate competition level\n  idea.competition = VALID_COMPETITION.includes(idea.competition) \n    ? idea.competition \n    : 'Medium';\n  \n  // Ensure required string fields\n  idea.title = idea.title || `Content Idea ${idea.ideaNumber}`;\n  idea.keyword = idea.keyword || 'Not specified';\n  idea.audienceSegment = idea.audienceSegment || 'General';\n  \n  // Truncate long fields\n  idea.outline = truncateField(idea.outline);\n  idea.fullContent = truncateField(idea.fullContent);\n  idea.whyItWorks = truncateField(idea.whyItWorks, 5000);\n  idea.seoTips = truncateField(idea.seoTips, 5000);\n  idea.visualSuggestions = truncateField(idea.visualSuggestions, 5000);\n  idea.contentGap = truncateField(idea.contentGap, 5000);\n  idea.engagementHooks = truncateField(idea.engagementHooks, 5000);\n  idea.relatedIdeas = truncateField(idea.relatedIdeas, 5000);\n  \n  // Format all date fields for Airtable\n  idea.createdAt = formatDateForAirtable(idea.createdAt);\n  idea.validatedAt = formatDateForAirtable(new Date());\n  \n  // Set publish target date (7 days from now if not specified)\n  if (idea.publishTargetDate) {\n    idea.publishTargetDate = formatDateForAirtable(idea.publishTargetDate);\n  } else {\n    const targetDate = new Date();\n    targetDate.setDate(targetDate.getDate() + 7);\n    idea.publishTargetDate = formatDateForAirtable(targetDate);\n  }\n  \n  // Add metadata\n  idea.airtableReady = true;\n  idea.processingVersion = '2.0-gemini';\n  \n  return { json: idea };\n});\n\n// Log summary\nconst typeDistribution = processedItems.reduce((acc, item) => {\n  const type = item.json.contentType;\n  acc[type] = (acc[type] || 0) + 1;\n  return acc;\n}, {});\n\nconst aiCategorizedCount = processedItems.filter(i => i.json.aiCategorized).length;\n\nconsole.log(`✓ Successfully processed ${processedItems.length} items`);\nconsole.log(`✓ AI categorized: ${aiCategorizedCount}/${processedItems.length}`);\nconsole.log('✓ Content Type Distribution:', typeDistribution);\n\nreturn processedItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        60
+      ],
+      "id": "990a5ccc-b422-4ef3-b0ea-5a340db9be97",
+      "name": "Merge & Validate"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all items from previous node\nconst items = $input.all();\n\n// Prepare simplified data for Gemini\nconst contentIdeas = items.map(item => ({\n  id: item.json.ideaNumber,\n  title: item.json.title,\n  wordCount: item.json.wordCount || 0,\n  keyword: item.json.keyword || '',\n  outline: item.json.outline ? item.json.outline.substring(0, 400) : '',\n  visualSuggestions: item.json.visualSuggestions ? item.json.visualSuggestions.substring(0, 200) : ''\n}));\n\n// Build the prompt\nconst prompt = `You are a content strategist. Categorize each of the following content ideas into the most appropriate format.\n\nAVAILABLE FORMATS:\n- Blog Post: 1500+ words, comprehensive, detailed guides, tutorials, how-tos\n- Text: <1500 words, concise, quick tips, definitions, FAQs\n- Video: Visual demonstrations, tutorials, mentions \"watch\" or \"video\"\n- Carousel: 5-10 slides, visual-heavy, step-by-step with images, infographics\n\nCONTENT IDEAS TO CATEGORIZE:\n${JSON.stringify(contentIdeas, null, 2)}\n\nAnalyze each idea and respond with ONLY a JSON array in this exact format (no markdown, no code blocks):\n[\n  {\n    \"id\": 1,\n    \"contentType\": \"Blog Post\",\n    \"confidence\": 95,\n    \"reasoning\": \"High word count and comprehensive guide structure\"\n  }\n]\n\nCRITICAL: Response must be ONLY the JSON array. Each contentType must be exactly one of: Blog Post, Text, Video, or Carousel.`;\n\n// Return as a proper JSON object (NOT a string)\nreturn [{\n  json: {\n    contents: [{\n      parts: [{\n        text: prompt\n      }]\n    }],\n    generationConfig: {\n      temperature: 0.2,\n      topK: 1,\n      topP: 1,\n      maxOutputTokens: 2048,\n      responseMimeType: \"application/json\"\n    },\n    originalItems: items.map(item => item.json)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        -120
+      ],
+      "id": "ff249362-464b-41fa-bb7f-20d16a578ff0",
+      "name": "Prep Data",
+      "alwaysOutputData": true,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "jsCode": "function formatDate(date) {\n  const options = { year: 'numeric', month: 'short', day: 'numeric' };\n  return date.toLocaleDateString('en-US', options);\n}\n\nconst today = new Date();\nconst nextRun = new Date(today);\nnextRun.setDate(today.getDate() + 7);\n\nconst keywordTable = `\n  <table border=\"1\" cellspacing=\"0\" cellpadding=\"6\" style=\"border-collapse:collapse;width:100%;margin-top:10px;\">\n    <thead style=\"background:#f3f4f6;\">\n      <tr>\n        <th style=\"text-align:left;\">#</th>\n        <th style=\"text-align:left;\">Keyword</th>\n        <th style=\"text-align:left;\">Search Volume</th>\n        <th style=\"text-align:left;\">Difficulty</th>\n        <th style=\"text-align:left;\">Competition</th>\n        <th style=\"text-align:left;\">Content Type</th>\n      </tr>\n    </thead>\n    <tbody>\n      ${items\n        .map((item, index) => {\n          const f = item.json.fields;\n          return `\n            <tr>\n              <td>${index + 1}</td>\n              <td>${f[\"Keyword\"] || f[\"Idea Title\"] || \"N/A\"}</td>\n              <td>${f[\"Search Volume\"] || f[\"Keyword Search Volume\"] || \"N/A\"}</td>\n              <td>${f[\"Difficulty\"] || f[\"Keyword Difficulty\"] || \"N/A\"}</td>\n              <td>${f[\"Competition Level\"] || \"N/A\"}</td>\n              <td>${f[\"Content Type\"] || \"Blog Post\"}</td>\n            </tr>\n          `;\n        })\n        .join(\"\")}\n    </tbody>\n  </table>\n`;\n\nconst detailedSections = items\n  .map((item, index) => {\n    const f = item.json.fields;\n    return `\n      <div style=\"margin-bottom:40px;\">\n        <h3 style=\"color:#1d4ed8;\">📝 ${index + 1}. ${f[\"Idea Title\"] || f[\"Keyword\"]}</h3>\n        <p><strong>Keyword:</strong> ${f[\"Keyword\"] || \"N/A\"}</p>\n        <p><strong>Trending Score:</strong> ${f[\"Trending Score\"] || \"N/A\"} |\n           <strong>Publish Target:</strong> ${f[\"Publish Target Date\"] || \"N/A\"}</p>\n\n        ${f[\"Outline\"]\n          ? `<h4 style=\"margin-top:10px;\">📘 Outline</h4>\n             <div style=\"background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px;white-space:pre-wrap;\">${f[\"Outline\"]}</div>`\n          : \"\"}\n\n        ${f[\"SEO Tips\"]\n          ? `<h4 style=\"margin-top:10px;\">🔍 SEO Tips</h4>\n             <div style=\"background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px;white-space:pre-wrap;\">${f[\"SEO Tips\"]}</div>`\n          : \"\"}\n\n        ${f[\"Suggested Images\"]\n          ? `<h4 style=\"margin-top:10px;\">🖼️ Suggested Images</h4>\n             <div style=\"background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px;white-space:pre-wrap;\">${f[\"Suggested Images\"]}</div>`\n          : \"\"}\n      </div>\n    `;\n  })\n  .join(\"\");\n\nreturn [\n  {\n    json: {\n      subject: `✅ Weekly Content Ideas - ${formatDate(today)}`,\n      html: `\n        <div style=\"font-family:Arial,Helvetica,sans-serif;max-width:800px;margin:auto;padding:20px;\">\n          <h2 style=\"color:#16a34a;\">🎯 Your Weekly Content Ideas Are Ready!</h2>\n          <p>Here’s a summary of your content ideas and keyword opportunities.</p>\n\n          <h3 style=\"margin-top:20px;\">📊 Keyword Overview</h3>\n          ${keywordTable}\n\n          <h3 style=\"margin-top:40px;\">🧠 Detailed Content Breakdown</h3>\n          ${detailedSections}\n\n          <hr style=\"margin-top:40px;margin-bottom:10px;\"/>\n          <p style=\"font-size:14px;color:#6b7280;\">\n            <em>Next scheduled run: ${formatDate(nextRun)}</em>\n          </p>\n        </div>\n      `,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        60
+      ],
+      "id": "0cd3bc4f-6623-4eb6-bd4a-7b04c68389d3",
+      "name": "Merge Content To Email"
+    },
+    {
+      "parameters": {
+        "sendTo": "codebfullstack@gmail.com",
+        "subject": "={{$json.subject}}",
+        "message": "={{$json.html}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3320,
+        60
+      ],
+      "id": "62d715e2-7b14-411d-9951-7b9432f4d0ae",
+      "name": "Send Content Mail ",
+      "webhookId": "425de23a-ea03-4147-babf-c3153fd84378",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "8fMp7NQgbyAt0GoF",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Content Creation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Video Editing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Niche & Parameters": {
+      "main": [
+        [
+          {
+            "node": "Serp API Search",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search Volume",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Reddit API REQ",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 6
+          }
+        ]
+      ]
+    },
+    "Serp API Search": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Search Volume": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Reddit API REQ": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "AI Prompt": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Post-Processing & Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post-Processing & Scoring": {
+      "main": [
+        [
+          {
+            "node": "Prep Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Content Idea": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        []
+      ]
+    },
+    "Save Keywords To DB": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Merge Content To Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Niche & Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Editing": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Content Creation": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "AI Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Content Creation1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Content Creation1": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Google Search": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reddit Keyword Search": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Merge & Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge & Validate": {
+      "main": [
+        [
+          {
+            "node": "Save Keywords To DB",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Content Idea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Data": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Content To Email": {
+      "main": [
+        [
+          {
+            "node": "Send Content Mail ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Content Mail ": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f4b3f24d-1a1c-4a6e-837d-a45228bd79f2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8d5e20e39e5bb2a4c1b4f43d843fd61c595a7a218859e2509456162f2837bafb"
+  },
+  "id": "TAUIcNT99SjCHL3d",
+  "tags": []
+}
+
