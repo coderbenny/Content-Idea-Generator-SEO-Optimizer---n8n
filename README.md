@@ -261,7 +261,7 @@ Replace these placeholders in the workflow:
    - Replace `"your api key"` with your actual SerpAPI key
 
 2. **Gemini API Key**: In "HTTP Request" node URL
-   - Replace `AIzaSyBultJ1_HmnwpWMJCTQy5fzEu_xmxqnTuw` with your key
+   - Replace `your api key` with your key
 
 3. **Airtable Base ID**: In all Airtable nodes
    - Current: `app666rrIm8om9ecs`
@@ -271,8 +271,7 @@ Replace these placeholders in the workflow:
    - Keywords Database: `tblqcIDR4Yl3GMzsR`
    - Content Ideas: `tblwhM74z8Qxwyw0h`
 
-5. **Email Recipient**: In "Send Content Mail" node
-   - Current: `codebfullstack@gmail.com`
+5. **Email Recipient**: In "Send Content Mail" node`
    - Replace with your email
 
 6. **Niche Presets**: In "Video Editing" and "Content Creation" nodes
