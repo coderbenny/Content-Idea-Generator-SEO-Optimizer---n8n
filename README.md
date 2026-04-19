@@ -1629,7 +1629,7 @@ SOFTWARE.
 ### Contact
 - **Email**: bhinnexclusive@gmail.com
 - **Twitter**: @coderbenny
-- **Website**: https://benny-eta.vercel.app
+- **Website**: https://www.bennyhinn.life
 
 ## 🔄 Changelog
 
